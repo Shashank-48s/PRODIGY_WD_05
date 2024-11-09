@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            color: #1a1a1a;
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 1rem;
+        }
+
+        input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        button {
+            padding: 12px 20px;
+            background: #2a5298;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #1e3c72;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        #location-btn {
+            width: 100%;
+            background: transparent;
+            border: 1px solid #2a5298;
+            color: #2a5298;
+        }
+
+        #location-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .error {
+            background: #fee;
+            color: #e33;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            display: none;
+        }
+
+        .weather-info {
+            text-align: center;
+            margin-top: 2rem;
+            display: none;
+        }
+
+        .weather-info h2 {
+            font-size: 1.5rem;
+            color: #1a1a1a;
+            margin-bottom: 0.5rem;
+        }
+
+        .temperature {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #1a1a1a;
+            margin: 1rem 0;
+        }
+
+        .condition {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 1.5rem;
+        }
+
+        .details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            padding: 1rem;
+            background: #f5f5f5;
+            border-radius: 6px;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-item p {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .detail-item span {
+            font-weight: 500;
+            color: #1a1a1a;
+        }
+
+        .loader {
+            display: none;
+            width: 40px;
+            height: 40px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #2a5298;
+            border-radius: 50%;
+            margin: 2rem auto;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Weather App</h1>
+            <p>Enter a location or use your current position</p>
+        </div>
+
+        <form id="search-form">
+            <div class="search-box">
+                <input type="text" id="location-input" placeholder="Enter location..." required>
+                <button type="submit">Search</button>
+            </div>
+            <button type="button" id="location-btn">Use My Location</button>
+        </form>
+
+        <div class="error" id="error-message"></div>
+        <div class="loader" id="loader"></div>
+
+        <div class="weather-info" id="weather-info">
+            <h2 id="location-name"></h2>
+            <div class="temperature"><span id="temperature"></span>°C</div>
+            <div class="condition" id="condition"></div>
+            <div class="details">
+                <div class="detail-item">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 3v18m0-12l-4 4m4-4l4 4"></path>
+                    </svg>
+                    <div>
+                        <p>Humidity</p>
+                        <span id="humidity"></span>
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2"></path>
+                    </svg>
+                    <div>
+                        <p>Wind Speed</p>
+                        <span id="wind-speed"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const searchForm = document.getElementById('search-form');
+        const locationInput = document.getElementById('location-input');
+        const locationBtn = document.getElementById('location-btn');
+        const errorMessage = document.getElementById('error-message');
+        const loader = document.getElementById('loader');
+        const weatherInfo = document.getElementById('weather-info');
+        const locationName = document.getElementById('location-name');
+        const temperature = document.getElementById('temperature');
+        const condition = document.getElementById('condition');
+        const humidity = document.getElementById('humidity');
+        const windSpeed = document.getElementById('wind-speed');
+
+        function showLoader() {
+            loader.style.display = 'block';
+            weatherInfo.style.display = 'none';
+            errorMessage.style.display = 'none';
+        }
+
+        function hideLoader() {
+            loader.style.display = 'none';
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            weatherInfo.style.display = 'none';
+        }
+
+        async function fetchWeather(searchLocation) {
+            showLoader();
+            
+            try {
+                // Simulate API delay
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Simulate weather data
+                const mockWeather = {
+                    location: searchLocation,
+                    temperature: Math.floor(Math.random() * 30) + 10,
+                    condition: ['Sunny', 'Cloudy', 'Rainy', 'Partly Cloudy'][Math.floor(Math.random() * 4)],
+                    humidity: Math.floor(Math.random() * 30) + 50,
+                    windSpeed: Math.floor(Math.random() * 20) + 5
+                };
+                
+                // Update UI with weather data
+                locationName.textContent = mockWeather.location;
+                temperature.textContent = mockWeather.temperature;
+                condition.textContent = mockWeather.condition;
+                humidity.textContent = `${mockWeather.humidity}%`;
+                windSpeed.textContent = `${mockWeather.windSpeed} km/h`;
+                
+                weatherInfo.style.display = 'block';
+            } catch (err) {
+                showError('Failed to fetch weather data. Please try again.');
+            } finally {
+                hideLoader();
+            }
+        }
+
+        searchForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const location = locationInput.value.trim();
+            if (location) {
+                fetchWeather(location);
+            }
+        });
+
+        locationBtn.addEventListener('click', () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude.toFixed(2);
+                        const lon = position.coords.longitude.toFixed(2);
+                        locationInput.value = `${lat}, ${lon}`;
+                        fetchWeather(`${lat}, ${lon}`);
+                    },
+                    () => {
+                        showError('Unable to get your location. Please enter it manually.');
+                    }
+                );
+            } else {
+                showError('Geolocation is not supported by your browser.');
+            }
+        });
+    </script>
+</body>
+</html>
